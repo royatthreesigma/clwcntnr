@@ -58,8 +58,8 @@ setup_as_root() {
 
   # Pre-create the ephemeral SSL dir while we're still root, because
   # /etc/ssl is owned by root and the deploy user can't mkdir there.
-  mkdir -p /etc/ssl/shpbl
-  chown "${DEPLOY_USER}:${DEPLOY_USER}" /etc/ssl/shpbl
+  mkdir -p /etc/ssl/clwapi
+  chown "${DEPLOY_USER}:${DEPLOY_USER}" /etc/ssl/clwapi
 
   # Let the deploy user append to the log when Phase 2 re-opens tee.
   touch /var/log/startup-script.log
@@ -79,15 +79,13 @@ setup_as_root() {
 setup_as_deploy_user() {
   echo "Running setup as $(whoami)..."
 
-  mkdir -p "${MOUNT_DIR}/node_modules"
-
   local env_file="${APP_DIR}/.env"
 
   # SSL certs and acme state live on the droplet filesystem, NOT on the
   # persistent volume.  Every droplet swap brings a new IP, so the old cert's
   # SAN won't match anyway.  Keeping these ephemeral means a fresh cert is
   # issued on every boot — no stale-cert / hostname-mismatch surprises.
-  local ssl_dir="/etc/ssl/shpbl"   # created by root in Phase 1
+  local ssl_dir="/etc/ssl/clwapi"   # created by root in Phase 1
   local acme_home="/tmp/acme"
 
   mkdir -p "$acme_home"
@@ -102,23 +100,15 @@ setup_as_deploy_user() {
   if [ ! -f "$env_file" ]; then
     echo "Generating .env..."
     cat > "$env_file" <<EOF
-ENVIRONMENT=development
+ENVIRONMENT=production
 POSTGRES_DB=db_$(openssl rand -hex 5)
 POSTGRES_PASSWORD=$(openssl rand -hex 8)
 POSTGRES_USER=user_$(openssl rand -hex 5)
-POSTGRES_HOST=db
+POSTGRES_HOST=clwdb
 POSTGRES_PORT=5432
-DEBUG=true
 SECRET_KEY=$(openssl rand -hex 16)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_key_here
-NEXT_PUBLIC_API_URL=https://${public_ip}/api
-CLERK_SECRET_KEY=your_clerk_secret_here
-RESEND_API_KEY=your_resend_api_key_here
 EOF
     chmod 600 "$env_file"
-  else
-    # Update API URL in existing .env
-    sed -i "s|^NEXT_PUBLIC_API_URL=.*|NEXT_PUBLIC_API_URL=https://${public_ip}/api|" "$env_file"
   fi
 
   cd "$APP_DIR"

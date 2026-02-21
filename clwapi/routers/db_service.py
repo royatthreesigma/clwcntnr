@@ -41,7 +41,7 @@ def get_db_connection():
     conn = None
     try:
         conn = psycopg2.connect(
-            host=os.getenv("POSTGRES_HOST", "db"),
+            host=os.getenv("POSTGRES_HOST", "clwdb"),
             port=int(os.getenv("POSTGRES_PORT", "5432")),
             database=os.getenv("POSTGRES_DB", "postgres"),
             user=os.getenv("POSTGRES_USER", "postgres"),

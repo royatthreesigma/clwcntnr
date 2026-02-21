@@ -1,4 +1,4 @@
-# Docker Compose configuration for DigitalOcean deployment with HTTPS
+# compose.yaml — production (with nginx/SSL proxy)
 ---
 services:
   proxy:
@@ -10,18 +10,15 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Certs live on the droplet's local FS (/etc/ssl/clwapi), not in the repo
-      # or on the persistent volume.  boot_script.sh issues a fresh cert for
-      # the current droplet IP on every boot, so these files are always valid.
       - /etc/ssl/clwapi:/etc/nginx/ssl:ro
     depends_on:
       - clwapi
     networks:
       - edge
 
-  db:
+  clwdb:
     image: postgres:17-alpine3.22
-    container_name: db
+    container_name: clwdb
     restart: unless-stopped
     volumes:
       - /mnt/pr_data/db-data:/var/lib/postgresql/data
@@ -35,6 +32,21 @@ services:
     networks:
       - edge
 
+  sandbox:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile
+    container_name: sandbox
+    restart: unless-stopped
+    volumes:
+      - sandbox-data:/workspace
+      - sandbox-env:/sandbox-env
+    depends_on:
+      clwdb:
+        condition: service_healthy
+    networks:
+      - edge
+
   clwapi:
     build:
       context: ./clwapi
@@ -44,13 +56,16 @@ services:
     env_file:
       - .env
     expose:
-      - "8001" # Internal only, proxy handles public access
+      - "8001"
     volumes:
       - ./clwapi:/clwapi
+      - sandbox-env:/sandbox-env
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      db:
+      clwdb:
         condition: service_healthy
+      sandbox:
+        condition: service_started
     networks:
       - edge
     command: sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
@@ -58,3 +73,7 @@ services:
 networks:
   edge:
     driver: bridge
+
+volumes:
+  sandbox-data:
+  sandbox-env:

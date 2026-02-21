@@ -1,4 +1,4 @@
-# Docker Compose configuration for DigitalOcean deployment with HTTPS
+# compose.dev.yaml — local development (no nginx/SSL)
 ---
 services:
   clwdb:
@@ -17,6 +17,21 @@ services:
     networks:
       - edge
 
+  sandbox:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile
+    container_name: sandbox
+    restart: unless-stopped
+    volumes:
+      - sandbox-data:/workspace
+      - sandbox-env:/sandbox-env
+    depends_on:
+      clwdb:
+        condition: service_healthy
+    networks:
+      - edge
+
   clwapi:
     build:
       context: ./clwapi
@@ -29,10 +44,13 @@ services:
       - "8001:8001"
     volumes:
       - ./clwapi:/clwapi
+      - sandbox-env:/sandbox-env
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       clwdb:
         condition: service_healthy
+      sandbox:
+        condition: service_started
     networks:
       - edge
     command: sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
@@ -43,4 +61,5 @@ networks:
 
 volumes:
   db-data:
-  node_modules:
+  sandbox-data:
+  sandbox-env:
