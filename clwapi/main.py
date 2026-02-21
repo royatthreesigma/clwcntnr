@@ -1,11 +1,10 @@
-from typing_extensions import get_args
+from fastapi import FastAPI
 import logging
 import docker  # type: ignore
 import time
 from container import exec_in_container
 from routers import db_service  # type: ignore
 from models import ContainerLogsRequest, RunCommandRequest, ShpblResponse  # type: ignore
-
 
 # Docker client for logs
 docker_client = docker.from_env()

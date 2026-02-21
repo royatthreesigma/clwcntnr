@@ -10,14 +10,12 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Certs live on the droplet's local FS (/etc/ssl/shpbl), not in the repo
+      # Certs live on the droplet's local FS (/etc/ssl/clwapi), not in the repo
       # or on the persistent volume.  boot_script.sh issues a fresh cert for
       # the current droplet IP on every boot, so these files are always valid.
-      - /etc/ssl/shpbl:/etc/nginx/ssl:ro
+      - /etc/ssl/clwapi:/etc/nginx/ssl:ro
     depends_on:
-      - frontend
-      - shpbl
-      - backend
+      - clwapi
     networks:
       - edge
 
@@ -37,66 +35,22 @@ services:
     networks:
       - edge
 
-  backend:
+  clwapi:
     build:
-      context: ./backend
+      context: ./clwapi
       dockerfile: Dockerfile
-    container_name: backend
-    restart: unless-stopped
-    env_file:
-      - .env
-    expose:
-      - "8000" # Internal only, accessed by shpbl/frontend
-    volumes:
-      - ./backend:/backend
-    command: sh -c "pip install -r requirements.txt && python manage.py runserver 0.0.0.0:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - edge
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: dev
-    container_name: frontend
-    restart: unless-stopped
-    expose:
-      - "3000" # Internal only, proxy handles public access
-    volumes:
-      - ./frontend:/frontend
-      - /mnt/pr_data/node_modules:/frontend/node_modules
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=development
-    command: sh -c "npm install && npm run dev"
-    networks:
-      - edge
-
-  shpbl:
-    build:
-      context: ./shpbl
-      dockerfile: Dockerfile
-    container_name: shpbl
+    container_name: clwapi
     restart: unless-stopped
     env_file:
       - .env
     expose:
       - "8001" # Internal only, proxy handles public access
     volumes:
-      - .:/workspace
-      - ./shpbl:/shpbl
+      - ./clwapi:/clwapi
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       db:
         condition: service_healthy
-      backend:
-        condition: service_started
-      frontend:
-        condition: service_started
     networks:
       - edge
     command: sh -c "pip install -r requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
