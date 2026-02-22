@@ -42,9 +42,11 @@ def exec_in_container(command: str, workdir: Optional[str] = None) -> ShpblRespo
         workdir = workdir or SANDBOX_WORKDIR
 
         # Source the managed .env file before running the user command.
-        # set -a exports every variable; 2>/dev/null handles missing file.
+        # set -a exports every variable.  We must guard with -f because
+        # dash (Debian's /bin/sh) treats `. <missing-file>` as a fatal
+        # error that kills the shell — even with 2>/dev/null.
         full_command = (
-            f"set -a; . {ENV_FILE_PATH} 2>/dev/null; set +a; "
+            f"set -a; [ -f {ENV_FILE_PATH} ] && . {ENV_FILE_PATH}; set +a; "
             f"cd {workdir} && {command}"
         )
 

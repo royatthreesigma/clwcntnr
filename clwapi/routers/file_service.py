@@ -83,8 +83,16 @@ async def get_file_tree(
     safe_path = _validate_path(path)
 
     result = exec_in_container(
-        command=f'find "{safe_path}" -maxdepth {depth} -not -path "*/\\.*" -printf "%y %p\n" 2>/dev/null; true',
+        command=f'find "{safe_path}" -maxdepth {depth} -not -path "*/\\.*" -printf "%y %p\\n"',
     )
+
+    if not result.success:
+        logger.error("find command failed: stderr=%s, exit_code=%s", result.stderr, result.exit_code)
+        return ShpblResponse(
+            success=False,
+            message=f"Failed to list {safe_path}: {result.stderr or 'unknown error'}",
+            data={"path": safe_path, "tree": []},
+        )
 
     tree = _parse_tree(result.stdout or "", safe_path)
 
