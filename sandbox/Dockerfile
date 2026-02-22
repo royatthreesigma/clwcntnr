@@ -19,5 +19,5 @@ RUN pip install --upgrade pip
 
 WORKDIR /workspace
 
-# Keep the container alive
-CMD ["sleep", "infinity"]
+# Keep the container alive; ensure tools directory exists on every start
+CMD ["sh", "-c", "mkdir -p /workspace/tools && exec sleep infinity"]
