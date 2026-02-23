@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
 
-from models import ShpblResponse
+from models import ShpblResponse, ExecuteSQLRequest
 
 router = APIRouter(prefix="/db", tags=["database"])
 
@@ -241,4 +241,60 @@ async def get_table_data(
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to query table data: {str(e)}"
+        )
+
+
+@router.post("/execute", response_model=ShpblResponse)
+async def execute_sql(request: ExecuteSQLRequest):
+    """
+    Execute an arbitrary SQL statement against the workspace PostgreSQL database.
+
+    - SELECT / EXPLAIN / SHOW  → returns rows (auto-committed, read-only txn).
+    - INSERT / UPDATE / DELETE / DDL → executes and commits; returns affected row count.
+    - Results are capped at 500 rows to prevent excessive payloads.
+    """
+    MAX_ROWS = 500
+    sql = request.sql.strip()
+    if not sql:
+        return ShpblResponse(success=False, message="SQL statement cannot be empty.")
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, request.params)
+
+                # Determine if the statement returns rows
+                if cur.description is not None:
+                    columns = [col.name for col in cur.description]
+                    rows = [dict(r) for r in cur.fetchmany(MAX_ROWS)]
+                    truncated = cur.rowcount > MAX_ROWS if cur.rowcount >= 0 else False
+                    conn.rollback()  # read-only: no side-effects
+                    return ShpblResponse(
+                        success=True,
+                        message=f"Query returned {len(rows)} row(s){' (truncated)' if truncated else ''}.",
+                        data={
+                            "columns": columns,
+                            "rows": rows,
+                            "row_count": len(rows),
+                            "truncated": truncated,
+                        },
+                    )
+                else:
+                    affected = cur.rowcount
+                    conn.commit()
+                    return ShpblResponse(
+                        success=True,
+                        message=f"Statement executed successfully. Rows affected: {affected}.",
+                        data={"rows_affected": affected},
+                    )
+    except psycopg2.Error as e:
+        return ShpblResponse(
+            success=False,
+            message=f"SQL execution error: {e.pgerror or str(e)}",
+            data={"pg_code": e.pgcode} if e.pgcode else None,
+        )
+    except Exception as e:
+        return ShpblResponse(
+            success=False,
+            message=f"Failed to execute SQL: {str(e)}",
         )

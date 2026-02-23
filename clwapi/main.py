@@ -7,6 +7,7 @@ from container import exec_in_container, exec_python_in_container
 from routers import db_service, env_service, file_service
 from models import (
     ContainerLogsRequest,
+    ExecuteSQLRequest,
     RunCommandRequest,
     RunPythonRequest,
     ShpblResponse,

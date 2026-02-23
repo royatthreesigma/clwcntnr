@@ -64,3 +64,13 @@ class RunPythonRequest(BaseModel):
     workdir: Optional[str] = Field(
         None, description="Working directory (defaults to /workspace)"
     )
+
+
+class ExecuteSQLRequest(BaseModel):
+    """Request model for executing a SQL statement against the workspace PostgreSQL database"""
+
+    sql: str = Field(..., description="SQL statement to execute")
+    params: Optional[list[Any]] = Field(
+        None,
+        description="Optional positional parameters for parameterised queries (use %s placeholders)",
+    )
