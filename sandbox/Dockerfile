@@ -16,8 +16,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # pip ready for the LLM to install whatever it needs
 RUN pip install --upgrade pip
+RUN pip install psycopg2-binary
+
+# Shared libs (seeded into /workspace/lib on every start)
+COPY lib/ /seed/lib/
+
+# Ensure /workspace/lib imports resolve via PYTHONPATH
+ENV PYTHONPATH="/workspace"
 
 WORKDIR /workspace
 
-# Keep the container alive; ensure tools directory exists on every start
-CMD ["sh", "-c", "mkdir -p /workspace/tools && exec sleep infinity"]
+# Seed shared libs, ensure dirs exist, then idle
+CMD ["sh", "-c", "mkdir -p /workspace/tools /workspace/lib && cp -r /seed/lib/. /workspace/lib/ && exec sleep infinity"]

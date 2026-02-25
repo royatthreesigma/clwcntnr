@@ -38,6 +38,8 @@ services:
       dockerfile: Dockerfile
     container_name: sandbox
     restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - sandbox-data:/workspace
       - sandbox-env:/sandbox-env
