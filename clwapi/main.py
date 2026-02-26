@@ -4,7 +4,7 @@ import docker
 import time
 
 from container import exec_in_container, exec_python_in_container
-from routers import env_service, file_service
+from routers import db_service, env_service, file_service
 from models import (
     ContainerLogsRequest,
     RunCommandRequest,
@@ -36,6 +36,7 @@ app = FastAPI(
 )
 
 # Include routers
+app.include_router(db_service.router)
 app.include_router(env_service.router)
 app.include_router(file_service.router)
 
