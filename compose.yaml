@@ -9,7 +9,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./network/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/ssl/clwapi:/etc/nginx/ssl:ro
     depends_on:
       - clwapi
@@ -43,6 +43,7 @@ services:
     volumes:
       - sandbox-data:/workspace
       - sandbox-env:/sandbox-env
+      - ./sandbox/skills:/workspace/skills:ro
     depends_on:
       clwdb:
         condition: service_healthy
@@ -63,6 +64,7 @@ services:
       - ./clwapi:/clwapi
       - sandbox-env:/sandbox-env
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./sandbox/skills:/skills:ro
     depends_on:
       clwdb:
         condition: service_healthy

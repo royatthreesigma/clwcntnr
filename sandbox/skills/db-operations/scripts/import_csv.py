@@ -18,6 +18,7 @@ import os
 import sys
 import csv
 import psycopg2
+from psycopg2.extras import RealDictCursor
 
 
 def main():
@@ -53,18 +54,23 @@ def main():
         password=os.environ.get("POSTGRES_PASSWORD", ""),
     )
     try:
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
             # Check if table exists
-            cur.execute("""
-                SELECT COUNT(*) FROM information_schema.tables
+            cur.execute(
+                """
+                SELECT COUNT(*) AS count FROM information_schema.tables
                 WHERE table_schema = %s AND table_name = %s
-            """, (schema, table))
-            exists = cur.fetchone()[0] > 0
+            """,
+                (schema, table),
+            )
+            exists = cur.fetchone()["count"] > 0
 
             if not exists:
                 col_defs = ", ".join(f'"{c}" TEXT' for c in columns)
                 cur.execute(f'CREATE TABLE "{schema}"."{table}" ({col_defs})')
-                print(f"Created table {schema}.{table} with {len(columns)} TEXT columns.")
+                print(
+                    f"Created table {schema}.{table} with {len(columns)} TEXT columns."
+                )
 
             # Insert rows
             placeholders = ", ".join(["%s"] * len(columns))

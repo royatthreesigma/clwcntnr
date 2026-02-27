@@ -15,7 +15,7 @@ from contextlib import contextmanager
 
 
 # ---------------------------------------------------------------------------
-# Connection helper (self-contained, no lib.db dependency)
+# Connection helper
 # ---------------------------------------------------------------------------
 
 

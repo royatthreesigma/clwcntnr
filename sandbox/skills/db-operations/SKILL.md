@@ -99,9 +99,7 @@ python3 scripts/db_stats.py
 - **Row limits**: `run_query.py` caps output at 500 rows. For larger exports use `scripts/export_csv.py` or paginate with `OFFSET`.
 - **Transactions**: Scripts auto-commit writes. For multi-statement transactions, write a custom script using `psycopg2` directly with explicit `conn.commit()` / `conn.rollback()`.
 - **Schema convention**: Use `public` as the default schema unless the strictly neccessary.
-- **Optional `lib.db`**: The sandbox also ships a `/workspace/lib/db.py` helper module (`get_connection`, `execute_query`, `execute_write`). You can use it in custom scripts if convenient, but it is not required — the bundled scripts are fully self-contained.
 
 ## See also
 
 - [Example queries](scripts/example_queries.sql) — common SQL patterns for copy-paste
-- [lib.db reference](references/PYTHON_LIB.md) — optional Python helper module docs

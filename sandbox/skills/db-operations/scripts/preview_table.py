@@ -63,7 +63,11 @@ def main():
             sr = {}
             for c in cols:
                 val = row[c]
-                s = json.dumps(val, cls=_Encoder) if isinstance(val, (dict, list)) else str(val) if val is not None else "NULL"
+                s = (
+                    json.dumps(val, cls=_Encoder)
+                    if isinstance(val, (dict, list))
+                    else str(val) if val is not None else "NULL"
+                )
                 sr[c] = s
                 widths[c] = max(widths[c], min(len(s), 50))
             str_rows.append(sr)
@@ -76,8 +80,8 @@ def main():
         for sr in str_rows:
             print("  ".join(sr[c][:50].ljust(widths[c]) for c in cols))
 
-        if total > limit:
-            print(f"\n  ... {total - limit:,d} more row(s)")
+        if total > len(rows):
+            print(f"\n  ... {total - len(rows):,d} more row(s)")
         print()
     finally:
         conn.close()
